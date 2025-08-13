@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +20,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,6 +30,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
@@ -34,14 +38,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.emi_calc_app.ui.theme.EmicalcTheme
 import com.example.emi_calc_app.view_model.InputViewModel
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @RequiresApi(Build.VERSION_CODES.O)
@@ -52,8 +56,9 @@ fun AmortizationTable(
     viewModel: InputViewModel,
     navController: NavController
 ) {
-    val table = viewModel.loadTable()
 
+    var isSplit by remember { mutableStateOf(false) }
+    val table = if(isSplit) viewModel.loadTable() else viewModel.loadYearlyTable()
     Scaffold(
         topBar = {
             TopAppBar(
@@ -66,82 +71,109 @@ fun AmortizationTable(
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+        Box(
+            modifier = Modifier.padding(paddingValues)
         ) {
-            StartDateField(viewModel)
-            Spacer(modifier = Modifier.height(16.dp))
-
-            BoxWithConstraints {
-                val minColWidth = 120.dp
-                val dynamicColWidth = if (maxWidth / 5 < minColWidth) minColWidth else maxWidth / 5
-
-                Row(
-                    modifier = Modifier
-                        .horizontalScroll(rememberScrollState())
-                        .padding(bottom = 8.dp)
-                ) {
-                    Column {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier.padding(horizontal = 8.dp)
-                        ) {
-                            Text(
-                                "Month",
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.width(dynamicColWidth)
-                            )
-                            Text(
-                                "Principal",
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.width(dynamicColWidth)
-                            )
-                            Text(
-                                "Interest",
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.width(dynamicColWidth)
-                            )
-                            Text(
-                                "Balance",
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.width(dynamicColWidth)
-                            )
-                            Text(
-                                "Loan %",
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.width(dynamicColWidth)
+            Column{
+                Box {
+                    StartDateField(modifier, viewModel)
+                }
+                Row (
+                    modifier.padding(end = 16.dp).align(Alignment.End)
+                ){
+                    AssistChip(
+                        onClick = {
+                            isSplit = !isSplit
+                        },
+                        label = {
+                            if (isSplit) Text("Monthly Split") else Text("Yearly Split")
+                        },
+                        trailingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Repeat,
+                                contentDescription = "Switch Split"
                             )
                         }
+                    )
+                }
+                Spacer(modifier.height(12.dp))
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                BoxWithConstraints(
+                    modifier = modifier.padding(
+                        start = 20.dp,
+                        end = 20.dp,
+                        bottom = 20.dp
+                    )
+                ) {
 
-                        LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 16.dp)
-                        ) {
-                            items(table) { row ->
-                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                    Text(row.month, modifier = Modifier.width(dynamicColWidth))
-                                    Text(
-                                        "%.2f".format(row.principalComponent),
-                                        modifier = Modifier.width(dynamicColWidth)
-                                    )
-                                    Text(
-                                        "%.2f".format(row.interestComponent),
-                                        modifier = Modifier.width(dynamicColWidth)
-                                    )
-                                    Text(
-                                        "%.2f".format(row.balance),
-                                        modifier = Modifier.width(dynamicColWidth)
-                                    )
-                                    Text(
-                                        "%.2f".format(row.loanPercentPaid),
-                                        modifier = Modifier.width(dynamicColWidth)
-                                    )
+                    //            val columnWidths = listOf(80.dp, 120.dp, 120.dp, 120.dp, 120.dp)
+                    val minColWidth = 120.dp
+
+                    val dynamicColWidth =
+                        if (maxWidth / 5 < minColWidth) minColWidth else maxWidth / 5
+                    Row(
+                        modifier = Modifier
+                            .horizontalScroll(rememberScrollState())
+                            .padding(16.dp)
+                    ) {
+                        Column {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            ) {
+                                Text(
+                                    if(isSplit)"Month" else "Year",
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.width(dynamicColWidth)
+                                )
+                                Text(
+                                    "Principal",
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.width(dynamicColWidth)
+                                )
+                                Text(
+                                    "Interest",
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.width(dynamicColWidth)
+                                )
+                                Text(
+                                    "Balance",
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.width(dynamicColWidth)
+                                )
+                                Text(
+                                    "Loan %",
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.width(dynamicColWidth)
+                                )
+                            }
+
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                            ) {
+                                items(table) { row ->
+                                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                        Text(row.month, modifier = Modifier.width(dynamicColWidth))
+                                        Text(
+                                            "%.2f".format(row.principalComponent),
+                                            modifier = Modifier.width(dynamicColWidth)
+                                        )
+                                        Text(
+                                            "%.2f".format(row.interestComponent),
+                                            modifier = Modifier.width(dynamicColWidth)
+                                        )
+                                        Text(
+                                            "%.2f".format(row.balance),
+                                            modifier = Modifier.width(dynamicColWidth)
+                                        )
+                                        Text(
+                                            "%.2f".format(row.loanPercentPaid),
+                                            modifier = Modifier.width(dynamicColWidth)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -153,58 +185,84 @@ fun AmortizationTable(
 }
 
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StartDateField(viewModel: InputViewModel) {
+fun StartDateField(
+    modifier: Modifier = Modifier,
+    viewModel: InputViewModel
+) {
     var showDatePicker by remember { mutableStateOf(false) }
-    val selectedDate = remember { mutableStateOf(viewModel.startDateMillis) }
-
-    val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = selectedDate.value
-    )
-
+    val selectedDate = remember { mutableStateOf(viewModel.startDateTenure) }
+    val datePickerState = rememberDatePickerState(selectedDate.value)
     OutlinedTextField(
-        value = convertMillisToDate(selectedDate.value),
+        value = viewModel.convertMillisToDate(selectedDate.value),
         onValueChange = {},
-        label = { Text("Start Date") },
-        readOnly = true,
         trailingIcon = {
-            IconButton(onClick = { showDatePicker = true }) {
-                Icon(Icons.Default.DateRange, contentDescription = "Select start date")
+            IconButton(
+                onClick = { showDatePicker = true }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.DateRange,
+                    contentDescription = "Start Date"
+                )
             }
         },
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier
+            .padding(16.dp)
+            .fillMaxWidth()
     )
-
-    if (showDatePicker) {
+    if(showDatePicker){
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
-                IconButton(onClick = {
-                    val selected = datePickerState.selectedDateMillis
-                    if (selected != null) {
-                        selectedDate.value = selected
-                        viewModel.setStartDate(selected)
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let{
+                            selectedDate.value = it
+                            viewModel.setStartDate(it)
+                        }
+                        showDatePicker = false
                     }
-                    showDatePicker = false
-                }) {
+                ) {
                     Text("OK")
                 }
             },
             dismissButton = {
-                IconButton(onClick = { showDatePicker = false }) {
+                TextButton(
+                    onClick = {
+                        showDatePicker = false
+                    }
+                ) {
                     Text("Cancel")
                 }
             }
-        ) {
+        ){
             DatePicker(state = datePickerState)
         }
     }
 }
 
 
-fun convertMillisToDate(millis: Long): String {
-    val formatter = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
-    return formatter.format(Date(millis))
+
+@Composable
+fun SplitChip(modifier: Modifier = Modifier) {
+
+    var isSplit by remember { mutableStateOf(false) }
+
+    AssistChip(
+        onClick = {
+            isSplit = !isSplit
+        },
+        label = {
+            if(isSplit)Text("Yearly Split")else Text("Monthly Split")
+        }
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun TablePreview(modifier: Modifier = Modifier) {
+    EmicalcTheme {
+        SplitChip()
+    }
 }

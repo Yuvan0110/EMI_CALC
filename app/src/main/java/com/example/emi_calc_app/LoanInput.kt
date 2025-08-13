@@ -1,5 +1,3 @@
-package com.example.emi_calc_app
-
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -27,6 +25,21 @@ fun LoanInput(
 ) {
     val input = viewModel.inputState
     var expanded by remember { mutableStateOf(false) }
+    var isExpanded by remember { mutableStateOf(false) }
+    val tenureUnits = listOf("Years", "Months")
+
+
+    LaunchedEffect(Unit) {
+        if (input.principal.isEmpty()) viewModel.setPrincipalAmount("1000000")
+        if (input.interest.isEmpty()) viewModel.setInterestRate("7.5")
+        if (input.tenure.isEmpty()) viewModel.setTenure("5")
+        viewModel.setTenureUnit(TenureUnit.YEARS)
+    }
+
+    val selectedUnit = when (input.tenureUnit) {
+        TenureUnit.YEARS -> "Years"
+        TenureUnit.MONTHS -> "Months"
+    }
 
     Scaffold(
         topBar = {
@@ -41,7 +54,7 @@ fun LoanInput(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.Start
         ) {
             OutlinedTextField(
                 value = input.principal,
@@ -62,7 +75,7 @@ fun LoanInput(
                 value = input.interest,
                 onValueChange = {
                     val num = it.toDoubleOrNull() ?: 0.0
-                    if (num >= 0 && num <= 100) {
+                    if (num in 0.0..100.0) {
                         if (it.matches(Regex("(^\\d+)?(\\.\\d*)?$"))) {
                             viewModel.setInterestRate(it)
                         }
@@ -76,55 +89,69 @@ fun LoanInput(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            OutlinedTextField(
-                value = input.tenure,
-                onValueChange = {
-                    if (it.isDigitsOnly() && it.length <= 4) {
-                        viewModel.setTenure(it)
-                    }
-                },
-                label = { Text("Tenure") },
-                placeholder = { Text("Enter loan tenure") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Text("Select Tenure Period:")
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                RadioButton(
-                    selected = input.tenureUnit == TenureUnit.MONTHS,
-                    onClick = { viewModel.setTenureUnit(TenureUnit.MONTHS) }
+                OutlinedTextField(
+                    value = input.tenure,
+                    onValueChange = {
+                        if (it.isDigitsOnly() && it.length <= 4) {
+                            viewModel.setTenure(it)
+                        }
+                    },
+                    label = { Text("Tenure") },
+                    placeholder = { Text("Enter loan tenure") },
+                    modifier = Modifier.weight(1f)
                 )
-                Text("Months", modifier = Modifier.padding(end = 16.dp))
 
-                RadioButton(
-                    selected = input.tenureUnit == TenureUnit.YEARS,
-                    onClick = { viewModel.setTenureUnit(TenureUnit.YEARS) }
-                )
-                Text("Years")
+                Spacer(modifier = Modifier.width(16.dp))
+
+                ExposedDropdownMenuBox(
+                    expanded = isExpanded,
+                    onExpandedChange = { isExpanded = !isExpanded },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedTextField(
+                        readOnly = true,
+                        value = selectedUnit,
+                        onValueChange = {},
+                        label = { Text("Tenure Unit") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isExpanded) },
+                        colors = ExposedDropdownMenuDefaults.textFieldColors(),
+                        modifier = Modifier.menuAnchor()
+                    )
+
+                    DropdownMenu(
+                        expanded = isExpanded,
+                        onDismissRequest = { isExpanded = false }
+                    ) {
+                        tenureUnits.forEach { selection ->
+                            DropdownMenuItem(
+                                text = { Text(selection) },
+                                onClick = {
+                                    isExpanded = false
+                                    viewModel.setTenureUnit(
+                                        if (selection == "Years") TenureUnit.YEARS else TenureUnit.MONTHS
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
             }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.Center
             ) {
                 Button(
-                    onClick = {
-                        navController.navigate("table")
-                    },
-                    enabled = input.principal.isNotEmpty() && input.interest.isNotEmpty() && input.tenure.isNotEmpty()
+                    onClick = { navController.navigate("table") },
+                    enabled = input.principal.isNotEmpty() &&
+                            input.interest.isNotEmpty() &&
+                            input.tenure.isNotEmpty()
                 ) {
                     Text("View")
-                }
-                Button(onClick = {
-                    viewModel.setInterestRate("")
-                    viewModel.setPrincipalAmount("")
-                    viewModel.setTenure("")
-                }) {
-                    Text("Clear")
                 }
             }
 
@@ -146,6 +173,7 @@ fun LoanInput(
         }
     }
 }
+
 
 @Composable
 fun LoanSummary(

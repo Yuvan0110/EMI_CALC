@@ -2,6 +2,7 @@ package com.example.emi_calc_app
 
 
 
+import LoanInput
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
