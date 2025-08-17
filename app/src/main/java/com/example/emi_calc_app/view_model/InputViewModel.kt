@@ -245,4 +245,23 @@ class InputViewModel : ViewModel() {
         val formatter = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
         return formatter.format(Date(millis))
     }
+
+    fun monthlySplitGroupedByYear(){
+        if(_table.isNotEmpty()){
+            _table.clear()
+        }
+        _table.groupBy {
+
+        }
+    }
+
+
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun monthlyBreakdownGroupedByYear(): Map<String, List<EmiBreakdown>> {
+        if (_table.isEmpty()) {
+            loadTable()
+        }
+        return _table.groupBy { it.month.takeLast(4) }
+    }
 }

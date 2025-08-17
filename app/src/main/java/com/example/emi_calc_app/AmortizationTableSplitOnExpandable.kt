@@ -1,0 +1,213 @@
+package com.example.emi_calc_app
+
+import android.annotation.SuppressLint
+import android.os.Build
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import com.example.emi_calc_app.view_model.InputViewModel
+import kotlin.text.get
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@SuppressLint("UnusedBoxWithConstraintsScope")
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun AmortizationExpandableTableSplit(
+    viewModel: InputViewModel,
+    navController : NavController,
+    modifier: Modifier
+) {
+    val yearlyData = viewModel.loadYearlyTable()
+    val monthlyDataGrouped = viewModel.monthlyBreakdownGroupedByYear()
+
+    val expandedYears = remember { mutableStateMapOf<String, Boolean>() }
+
+    Scaffold (
+        topBar = {
+            TopAppBar(
+                title = { Text("Amortization Table") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ){ paddingValues ->
+        Box (
+            modifier = modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+        ){
+            BoxWithConstraints(
+                modifier = modifier.padding(
+                    start = 20.dp,
+                    end = 20.dp,
+                    bottom = 20.dp
+                )
+            ) {
+                val minColWidth = 120.dp
+                val dynamicColWidth =
+                    if (maxWidth / 5 < minColWidth) minColWidth
+                    else maxWidth / 5
+
+                Row(
+                    modifier = modifier
+                        .horizontalScroll(rememberScrollState())
+                        .padding(16.dp)
+                ) {
+                    Column {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        ) {
+                            Text(
+                                text = "Year",
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.width(dynamicColWidth)
+                            )
+                            Text(
+                                "Principal",
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.width(dynamicColWidth)
+                            )
+                            Text(
+                                "Interest",
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.width(dynamicColWidth)
+                            )
+                            Text(
+                                "Balance",
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.width(dynamicColWidth)
+                            )
+                            Text(
+                                "Loan %",
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.width(dynamicColWidth)
+                            )
+                        }
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp)
+                        ) {
+                            items(yearlyData) { yearEntry ->
+                                val year = yearEntry.month
+                                val isExpanded = expandedYears[year] ?: false
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp)
+                                ) {
+
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { expandedYears[year] = !isExpanded },
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(16.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                        ) {
+                                            Text(
+                                                text = yearEntry.month,
+                                                modifier = Modifier.width(dynamicColWidth)
+                                            )
+                                            Text(
+                                                text = "%.2f".format(yearEntry.principalComponent),
+                                                modifier = Modifier.width(dynamicColWidth)
+                                            )
+                                            Text(
+                                                text = "%.2f".format(yearEntry.interestComponent),
+                                                modifier = Modifier.width(dynamicColWidth)
+                                            )
+                                            Text(
+                                                text = "%.2f".format(yearEntry.balance),
+                                                modifier = Modifier.width(dynamicColWidth)
+                                            )
+                                            Text(
+                                                text = "%.2f".format(yearEntry.loanPercentPaid),
+                                                modifier = Modifier.width(dynamicColWidth)
+                                            )
+                                        }
+                                    }
+
+
+                                    if (isExpanded) {
+                                        monthlyDataGrouped[year]?.forEach { monthEntry ->
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(start = 16.dp, top = 4.dp)
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(12.dp),
+                                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                                ) {
+                                                    Text(
+                                                        text = monthEntry.month,
+                                                        modifier = Modifier.width(dynamicColWidth)
+                                                    )
+                                                    Text(
+                                                        text = "%.2f".format(monthEntry.principalComponent),
+                                                        modifier = Modifier.width(dynamicColWidth)
+                                                    )
+                                                    Text(
+                                                        text = "%.2f".format(monthEntry.interestComponent),
+                                                        modifier = Modifier.width(dynamicColWidth)
+                                                    )
+                                                    Text(
+                                                        text = "%.2f".format(monthEntry.balance),
+                                                        modifier = Modifier.width(dynamicColWidth)
+                                                    )
+                                                    Text(
+                                                        text = "%.2f".format(monthEntry.loanPercentPaid),
+                                                        modifier = Modifier.width(dynamicColWidth)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+

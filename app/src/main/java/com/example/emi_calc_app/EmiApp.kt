@@ -6,6 +6,7 @@ import LoanInput
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -29,9 +30,10 @@ fun EmiApp() {
             )
         }
         composable("table") {
-            AmortizationTable(
+            AmortizationExpandableTableSplit(
                 viewModel = viewModel,
-                navController = navController
+                navController = navController,
+                modifier = Modifier
             )
         }
     }
