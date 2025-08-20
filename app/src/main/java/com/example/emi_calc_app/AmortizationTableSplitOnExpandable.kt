@@ -215,6 +215,7 @@ fun AmortizationExpandableTableSplit(
                         Text("Download as pdf")
                     }
 
+
                     Button(
                         onClick = {
                             writeDataToExcel(viewModel)
