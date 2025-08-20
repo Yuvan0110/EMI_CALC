@@ -1,4 +1,6 @@
-import androidx.compose.foundation.clickable
+package com.example.emi_calc_app
+
+import android.graphics.Color
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -9,22 +11,32 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.text.isDigitsOnly
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.emi_calc_app.data.TenureUnit
 import com.example.emi_calc_app.view_model.InputViewModel
+import com.github.mikephil.charting.charts.PieChart
+import com.github.mikephil.charting.data.PieData
+import com.github.mikephil.charting.data.PieDataSet
+import com.github.mikephil.charting.data.PieEntry
+import com.github.mikephil.charting.formatter.PercentFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoanInput(
+    modifier: Modifier = Modifier,
     viewModel: InputViewModel = viewModel(),
-    navController: NavController,
-    modifier: Modifier = Modifier
+    navController: NavController
 ) {
     val input = viewModel.inputState
-    var expanded by remember { mutableStateOf(false) }
     var isExpanded by remember { mutableStateOf(false) }
     val tenureUnits = listOf("Years", "Months")
 
@@ -33,7 +45,6 @@ fun LoanInput(
         if (input.principal.isEmpty()) viewModel.setPrincipalAmount("1000000")
         if (input.interest.isEmpty()) viewModel.setInterestRate("7.5")
         if (input.tenure.isEmpty()) viewModel.setTenure("5")
-        viewModel.setTenureUnit(TenureUnit.YEARS)
     }
 
     val selectedUnit = when (input.tenureUnit) {
@@ -44,9 +55,13 @@ fun LoanInput(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("EMI CALCULATOR") }
+                title = { Text("EMI Calculator") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                )
             )
-        }
+        },
     ) { paddingValues ->
         Column(
             modifier = modifier
@@ -143,7 +158,7 @@ fun LoanInput(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Button(
                     onClick = { navController.navigate("table") },
@@ -151,75 +166,41 @@ fun LoanInput(
                             input.interest.isNotEmpty() &&
                             input.tenure.isNotEmpty()
                 ) {
-                    Text("View")
+                    Text("Detailed statistics")
+                }
+
+                Button(
+                    onClick = { navController.navigate("graph") },
+                    enabled = input.principal.isNotEmpty() &&
+                            input.interest.isNotEmpty() &&
+                            input.tenure.isNotEmpty()
+                ) {
+                    Text("Show Chart")
                 }
             }
 
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { expanded = !expanded }
                     .padding(top = 12.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Loan Summary")
-                    if (expanded) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        LoanSummary(viewModel)
-                    }
+                    Text(
+                        text = "Loan Summary",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    LoanSummary(viewModel)
                 }
             }
+
+            PieChartSummary(viewModel)
         }
     }
 }
 
 
-@Composable
-fun LoanSummary(
-    viewModel: InputViewModel,
-    modifier: Modifier = Modifier
-) {
-    val emi = viewModel.calcEmi()
-    val interest = viewModel.calcTotalInterest(emi)
-    val total = viewModel.calcTotalAmountPayable(emi)
 
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(Modifier.padding(16.dp)) {
-                Text("Monthly EMI:")
-                Spacer(Modifier.height(4.dp))
-                Text("₹ %.2f".format(emi))
-            }
-        }
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(Modifier.padding(16.dp)) {
-                Text("Total Interest:")
-                Spacer(Modifier.height(4.dp))
-                Text("₹ %.2f".format(interest))
-            }
-        }
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(Modifier.padding(16.dp)) {
-                Text("Total Amount\n(Principal + Interest):")
-                Spacer(Modifier.height(4.dp))
-                Text("₹ %.2f".format(total))
-            }
-        }
-    }
-}

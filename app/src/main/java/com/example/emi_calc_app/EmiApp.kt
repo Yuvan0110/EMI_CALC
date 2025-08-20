@@ -1,8 +1,9 @@
+
+
+// EmiApp.kt
 package com.example.emi_calc_app
 
 
-
-import LoanInput
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
@@ -36,5 +37,13 @@ fun EmiApp() {
                 modifier = Modifier
             )
         }
+        composable("graph") {
+            LineChartCompose(
+                viewModel = viewModel,
+                navController = navController,
+                modifier = Modifier
+            )
+        }
     }
 }
+
