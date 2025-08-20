@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.emi_calc_app"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -62,4 +62,11 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.1")
 
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+
+    // https://mvnrepository.com/artifact/org.apache.poi/poi
+    implementation("org.apache.poi:poi:5.4.1")
+    // https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml-schemas
+    implementation("org.apache.poi:poi-ooxml:5.4.1")
+
+    implementation("com.itextpdf:itextg:5.5.10")
 }

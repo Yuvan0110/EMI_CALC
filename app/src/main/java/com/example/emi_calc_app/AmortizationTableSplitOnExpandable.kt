@@ -2,8 +2,10 @@
 // Split table.kt
 package com.example.emi_calc_app
 
+// split table
 import android.annotation.SuppressLint
 import android.os.Build
+import android.os.Environment
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,6 +29,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -55,10 +58,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.emi_calc_app.view_model.InputViewModel
+import org.apache.poi.ss.usermodel.*
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.text.get
+
+import com.itextpdf.text.Document
+import com.itextpdf.text.Element
+import com.itextpdf.text.Font
+import com.itextpdf.text.Paragraph
+import com.itextpdf.text.pdf.PdfPCell
+import com.itextpdf.text.pdf.PdfPTable
+import com.itextpdf.text.pdf.PdfWriter
+
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,7 +92,21 @@ fun AmortizationExpandableTableSplit(
 
     Scaffold(
         topBar = {
-            AppBar("Amortization Table", onBack = { navController.navigateUp() })
+            TopAppBar(
+                title = { Text("Amortization Table") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    navigationIconContentColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.primaryContainer,
+                    actionIconContentColor = MaterialTheme.colorScheme.primaryContainer,
+                    scrolledContainerColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
         }
     ) { paddingValues ->
         Box(
@@ -171,6 +200,29 @@ fun AmortizationExpandableTableSplit(
                         }
                     }
                 }
+
+                Spacer(modifier.height(16.dp))
+
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Button(
+                        onClick = {
+                            writeDataToPdf(viewModel)
+                        }
+                    ) {
+                        Text("Download as pdf")
+                    }
+
+                    Button(
+                        onClick = {
+                            writeDataToExcel(viewModel)
+                        }
+                    ) {
+                        Text("Download as Excel")
+                    }
+                }
             }
         }
 
@@ -221,7 +273,9 @@ fun StartDateField(
             }
         },
         readOnly = true,
-        modifier = Modifier.padding(16.dp).fillMaxWidth()
+        modifier = Modifier
+            .padding(16.dp)
+            .fillMaxWidth()
     )
     if(showDatePicker){
         DatePickerDialog(
@@ -259,4 +313,87 @@ fun convertMillisToDate(millis: Long): String {
     val formatter = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
     return formatter.format(Date(millis))
 }
+
+@RequiresApi(Build.VERSION_CODES.O)
+@SuppressLint("DefaultLocale")
+fun writeDataToFile(viewModel: InputViewModel) {
+    val dest = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+
+    val outputFile = File(dest, "summary_${System.currentTimeMillis()}.txt")
+    val table = viewModel.loadTable()
+    outputFile.bufferedWriter().use { writer ->
+        writer.write("Month     Principal    Interest    Total Amount    Balance    Loan % Paid\n\n")
+        table.forEach {
+            writer.write("${it.month}     ${String.format("%.2f", it.principalComponent)}    ${String.format("%.2f", it.interestComponent)}    ${String.format("%.2f", it.totalAmount)}    ${String.format("%.2f", it.balance)}    ${String.format("%.2f", it.loanPercentPaid) + '%'} \n")
+        }
+    }
+}
+
+fun writeDataToExcel(
+    viewModel: InputViewModel
+) {
+    val workbook :  Workbook = XSSFWorkbook()
+    val sheet : Sheet = workbook.createSheet("SummaryData_${System.currentTimeMillis()}")
+    val table = viewModel.loadTable()
+
+    val row : Row = sheet.createRow(0)
+    row.createCell(0).setCellValue("Month")
+    row.createCell(1).setCellValue("Principal")
+    row.createCell(2).setCellValue("Interest")
+    row.createCell(3).setCellValue("Total Amount")
+    row.createCell(4).setCellValue("Balance")
+    row.createCell(5).setCellValue("Loan Loan Paid Percentage")
+    for(i in 1.. table.size){
+        val row : Row = sheet.createRow(i)
+        row.createCell(0).setCellValue(table[i-1].month)
+        row.createCell(1).setCellValue(table[i-1].principalComponent)
+        row.createCell(2).setCellValue(table[i-1].interestComponent)
+        row.createCell(3).setCellValue(table[i-1].totalAmount)
+        row.createCell(4).setCellValue(table[i-1].balance)
+        row.createCell(5).setCellValue(table[i-1].loanPercentPaid)
+    }
+
+    val folder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+
+    val file = File(folder, "SummaryData_${System.currentTimeMillis()}.xlsx")
+
+    val fileOut = FileOutputStream(file)
+    workbook.write(fileOut)
+
+}
+
+
+fun writeDataToPdf(viewModel: InputViewModel) {
+    val tableData = viewModel.loadTable()
+    val folder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+    val file = File(folder, "AmortizationTable_${System.currentTimeMillis()}.pdf")
+
+    val document = Document()
+    PdfWriter.getInstance(document, FileOutputStream(file))
+    document.open()
+
+    val pdfTable = PdfPTable(6)
+    pdfTable.widthPercentage = 100f
+
+    val headers = listOf("Month", "Principal", "Interest", "Total Amount", "Balance", "Loan % Paid")
+    headers.forEach {
+        val cell = PdfPCell(Paragraph(it)).apply {
+            horizontalAlignment = Element.ALIGN_CENTER
+        }
+        pdfTable.addCell(cell)
+    }
+
+    tableData.forEach {
+        pdfTable.addCell(it.month)
+        pdfTable.addCell("₹ %.2f".format(it.principalComponent))
+        pdfTable.addCell("₹ %.2f".format(it.interestComponent))
+        pdfTable.addCell("₹ %.2f".format(it.totalAmount))
+        pdfTable.addCell("₹ %.2f".format(it.balance))
+        pdfTable.addCell("%.2f %%".format(it.loanPercentPaid))
+    }
+
+    document.add(pdfTable)
+    document.close()
+}
+
 
