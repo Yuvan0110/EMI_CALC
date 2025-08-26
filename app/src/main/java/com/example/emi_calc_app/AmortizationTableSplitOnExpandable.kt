@@ -1,12 +1,8 @@
-
-// Split table.kt
 package com.example.emi_calc_app
 
-// split table
 import android.annotation.SuppressLint
-import android.os.Build
+import android.graphics.Color
 import android.os.Environment
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -51,44 +47,47 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
+import com.example.emi_calc_app.data.EmiBreakdown
 import com.example.emi_calc_app.view_model.InputViewModel
-import org.apache.poi.ss.usermodel.*
+import com.github.mikephil.charting.charts.LineChart
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
+import com.itextpdf.text.Document
+import com.itextpdf.text.Element
+import com.itextpdf.text.Paragraph
+import com.itextpdf.text.pdf.PdfPCell
+import com.itextpdf.text.pdf.PdfPTable
+import com.itextpdf.text.pdf.PdfWriter
+import org.apache.poi.ss.usermodel.Row
+import org.apache.poi.ss.usermodel.Sheet
+import org.apache.poi.ss.usermodel.Workbook
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.ui.graphics.Color as ComposeColor
 
-import com.itextpdf.text.Document
-import com.itextpdf.text.Element
-import com.itextpdf.text.Font
-import com.itextpdf.text.Paragraph
-import com.itextpdf.text.pdf.PdfPCell
-import com.itextpdf.text.pdf.PdfPTable
-import com.itextpdf.text.pdf.PdfWriter
-
-
-@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun AmortizationExpandableTableSplit(
     viewModel: InputViewModel,
     navController: NavController,
-    modifier: Modifier
+    modifier: Modifier = Modifier
 ) {
     val yearlyData = viewModel.loadYearlyTable()
     val monthlyDataGrouped = viewModel.monthlyBreakdownGroupedByYear()
     val expandedYears = remember { mutableStateMapOf<String, Boolean>() }
-
-
+    val tableData = viewModel.loadTable() // For chart data
 
     Scaffold(
         topBar = {
@@ -122,7 +121,9 @@ fun AmortizationExpandableTableSplit(
                     modifier.fillMaxWidth()
                 )
 
-                Spacer(modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 BoxWithConstraints {
                     val minColWidth = 120.dp
@@ -160,17 +161,18 @@ fun AmortizationExpandableTableSplit(
                                                 modifier = Modifier
                                                     .width(dynamicColWidth)
                                                     .height(40.dp)
-                                                    .border(1.dp, Color.Gray),
+                                                    .border(1.dp, ComposeColor.Gray),
                                                 contentAlignment = Alignment.Center
-                                            ){
+                                            ) {
                                                 Row(
                                                     horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                                ){
+                                                ) {
                                                     Icon(
-                                                        imageVector = if(isExpanded)Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                                                         contentDescription = "expand"
                                                     )
-                                                    Text(text = yearEntry.month,
+                                                    Text(
+                                                        text = yearEntry.month,
                                                         fontSize = 14.sp,
                                                         textAlign = TextAlign.Center
                                                     )
@@ -201,47 +203,112 @@ fun AmortizationExpandableTableSplit(
                     }
                 }
 
-                Spacer(modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Button(
-                        onClick = {
-                            writeDataToPdf(viewModel)
-                        }
+                        onClick = { writeDataToPdf(viewModel) }
                     ) {
                         Text("Download as pdf")
                     }
-
-
                     Button(
-                        onClick = {
-                            writeDataToExcel(viewModel)
-                        }
+                        onClick = { writeDataToExcel(viewModel) }
                     ) {
                         Text("Download as Excel")
                     }
                 }
             }
         }
-
     }
 }
 
-@Composable fun TableCell(
-    text: String,
-    width: Dp,
-    height : Dp = 40.dp
-) {
+//class CustomMarkerView(context: Context, private val tableData: List<EmiBreakdown>) : MarkerView(context, 0) {
+//    private var tooltipTitle by mutableStateOf("Data Point")
+//    private var tooltipValue by mutableStateOf("Value: N/A")
+//
+//    init {
+//        val composeView = ComposeView(context).apply {
+//            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+//            setContent {
+//                TooltipContent(title = tooltipTitle, value = tooltipValue)
+//            }
+//        }
+//        addView(composeView)
+//    }
+//
+//    @Composable
+//    private fun TooltipContent(title: String, value: String) {
+//        Column(
+//            modifier = Modifier
+//                .background(ComposeColor.White)
+//                .padding(8.dp)
+//                .border(1.dp, ComposeColor.Gray)
+//        ) {
+//            Text(
+//                text = title,
+//                fontWeight = FontWeight.Bold,
+//                fontSize = 14.sp,
+//                color = ComposeColor.Black
+//            )
+//            Text(
+//                text = value,
+//                fontSize = 12.sp,
+//                color = ComposeColor.Black,
+//                modifier = Modifier.padding(top = 4.dp)
+//            )
+//        }
+//    }
+//
+//    override fun refreshContent(e: Entry?, highlight: Highlight?) {
+//        if (e == null) {
+//            tooltipTitle = "No Data"
+//            tooltipValue = ""
+//        } else {
+//            val index = e.x.toInt()
+//            val entry = tableData.getOrNull(index)
+//            if (entry != null) {
+//                tooltipTitle = "Month: ${entry.month}"
+//                tooltipValue = "Balance: ₹ ${String.format("%.2f", entry.balance)}\n" +
+//                        "Principal: ₹ ${String.format("%.2f", entry.principalComponent)}\n" +
+//                        "Interest: ₹ ${String.format("%.2f", entry.interestComponent)}"
+//            } else {
+//                tooltipTitle = "Month: ${index + 1}"
+//                tooltipValue = "Balance: ₹ ${String.format("%.2f", e.y)}"
+//            }
+//        }
+//        super.refreshContent(e, highlight)
+//    }
+//
+//    override fun getOffset(): MPPointF {
+//        return MPPointF(-(width / 2f), -height.toFloat())
+//    }
+//
+//    override fun getOffsetForDrawingAtPoint(posX: Float, posY: Float): MPPointF {
+//        val offset = getOffset()
+//        if (posX + offset.x + width > chartView.width) {
+//            offset.x = -width.toFloat()
+//        }
+//        if (posY + offset.y < 0) {
+//            offset.y = 0f
+//        }
+//        return offset
+//    }
+//}
+
+
+
+@Composable
+fun TableCell(text: String, width: Dp, height: Dp = 40.dp) {
     Box(
         modifier = Modifier
             .width(width)
             .height(height)
-            .border(1.dp, Color.Gray),
-        contentAlignment = Alignment.Center )
-    {
+            .border(1.dp, ComposeColor.Gray),
+        contentAlignment = Alignment.Center
+    ) {
         Text(
             text = text,
             fontSize = 14.sp,
@@ -252,10 +319,7 @@ fun AmortizationExpandableTableSplit(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StartDateField(
-    viewModel: InputViewModel,
-    modifier: Modifier
-) {
+fun StartDateField(viewModel: InputViewModel, modifier: Modifier) {
     var showDatePicker by remember { mutableStateOf(false) }
     val selectedDate = remember { mutableStateOf(viewModel.startDateTenure) }
     val datePickerState = rememberDatePickerState(selectedDate.value)
@@ -264,13 +328,8 @@ fun StartDateField(
         onValueChange = {},
         label = { Text("Start date") },
         trailingIcon = {
-            IconButton(
-                onClick = { showDatePicker = true }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.DateRange,
-                    contentDescription = "Start Date"
-                )
+            IconButton(onClick = { showDatePicker = true }) {
+                Icon(Icons.Default.DateRange, contentDescription = "Start Date")
             }
         },
         readOnly = true,
@@ -278,48 +337,37 @@ fun StartDateField(
             .padding(16.dp)
             .fillMaxWidth()
     )
-    if(showDatePicker){
+    if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        datePickerState.selectedDateMillis?.let{
+                        datePickerState.selectedDateMillis?.let {
                             selectedDate.value = it
                             viewModel.setStartDate(it)
                         }
                         showDatePicker = false
                     }
-                ) {
-                    Text("OK")
-                }
+                ) { Text("OK") }
             },
             dismissButton = {
-                TextButton(
-                    onClick = {
-                        showDatePicker = false
-                    }
-                ) {
-                    Text("Cancel")
-                }
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
             }
-        ){
+        ) {
             DatePicker(state = datePickerState)
         }
     }
 }
-
 
 fun convertMillisToDate(millis: Long): String {
     val formatter = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
     return formatter.format(Date(millis))
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 @SuppressLint("DefaultLocale")
 fun writeDataToFile(viewModel: InputViewModel) {
     val dest = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-
     val outputFile = File(dest, "summary_${System.currentTimeMillis()}.txt")
     val table = viewModel.loadTable()
     outputFile.bufferedWriter().use { writer ->
@@ -330,52 +378,41 @@ fun writeDataToFile(viewModel: InputViewModel) {
     }
 }
 
-fun writeDataToExcel(
-    viewModel: InputViewModel
-) {
-    val workbook :  Workbook = XSSFWorkbook()
-    val sheet : Sheet = workbook.createSheet("SummaryData_${System.currentTimeMillis()}")
+fun writeDataToExcel(viewModel: InputViewModel) {
+    val workbook: Workbook = XSSFWorkbook()
+    val sheet: Sheet = workbook.createSheet("SummaryData_${System.currentTimeMillis()}")
     val table = viewModel.loadTable()
-
-    val row : Row = sheet.createRow(0)
+    val row: Row = sheet.createRow(0)
     row.createCell(0).setCellValue("Month")
     row.createCell(1).setCellValue("Principal")
     row.createCell(2).setCellValue("Interest")
     row.createCell(3).setCellValue("Total Amount")
     row.createCell(4).setCellValue("Balance")
     row.createCell(5).setCellValue("Loan Loan Paid Percentage")
-    for(i in 1.. table.size){
-        val row : Row = sheet.createRow(i)
-        row.createCell(0).setCellValue(table[i-1].month)
-        row.createCell(1).setCellValue(table[i-1].principalComponent)
-        row.createCell(2).setCellValue(table[i-1].interestComponent)
-        row.createCell(3).setCellValue(table[i-1].totalAmount)
-        row.createCell(4).setCellValue(table[i-1].balance)
-        row.createCell(5).setCellValue(table[i-1].loanPercentPaid)
+    for (i in 1..table.size) {
+        val row: Row = sheet.createRow(i)
+        row.createCell(0).setCellValue(table[i - 1].month)
+        row.createCell(1).setCellValue(table[i - 1].principalComponent)
+        row.createCell(2).setCellValue(table[i - 1].interestComponent)
+        row.createCell(3).setCellValue(table[i - 1].totalAmount)
+        row.createCell(4).setCellValue(table[i - 1].balance)
+        row.createCell(5).setCellValue(table[i - 1].loanPercentPaid)
     }
-
     val folder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-
     val file = File(folder, "SummaryData_${System.currentTimeMillis()}.xlsx")
-
     val fileOut = FileOutputStream(file)
     workbook.write(fileOut)
-
 }
-
 
 fun writeDataToPdf(viewModel: InputViewModel) {
     val tableData = viewModel.loadTable()
     val folder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
     val file = File(folder, "AmortizationTable_${System.currentTimeMillis()}.pdf")
-
     val document = Document()
     PdfWriter.getInstance(document, FileOutputStream(file))
     document.open()
-
     val pdfTable = PdfPTable(6)
     pdfTable.widthPercentage = 100f
-
     val headers = listOf("Month", "Principal", "Interest", "Total Amount", "Balance", "Loan % Paid")
     headers.forEach {
         val cell = PdfPCell(Paragraph(it)).apply {
@@ -383,7 +420,6 @@ fun writeDataToPdf(viewModel: InputViewModel) {
         }
         pdfTable.addCell(cell)
     }
-
     tableData.forEach {
         pdfTable.addCell(it.month)
         pdfTable.addCell("₹ %.2f".format(it.principalComponent))
@@ -392,9 +428,6 @@ fun writeDataToPdf(viewModel: InputViewModel) {
         pdfTable.addCell("₹ %.2f".format(it.balance))
         pdfTable.addCell("%.2f %%".format(it.loanPercentPaid))
     }
-
     document.add(pdfTable)
     document.close()
 }
-
-

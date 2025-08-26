@@ -1,9 +1,6 @@
 
-// Input view model.kt
 package com.example.emi_calc_app.view_model
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -19,8 +16,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.pow
 
-class InputViewModel : ViewModel() {
 
+class InputViewModel : ViewModel() {
 
     private val _input = mutableStateOf(InputState())
     val inputState: InputState get() = _input.value
@@ -33,53 +30,43 @@ class InputViewModel : ViewModel() {
 
     var startDateTenure by mutableLongStateOf(System.currentTimeMillis())
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun setStartDate(stDate: Long) {
         startDateTenure = stDate
-        refreshTables()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    fun setPrincipalAmount(value: String) {
+        _input.value = _input.value.copy(principal = value)
+    }
+
+    fun setInterestRate(value: String) {
+        _input.value = _input.value.copy(interest = value)
+    }
+
+    fun setTenure(value: String) {
+        _input.value = _input.value.copy(tenure = value)
+    }
+
+    fun setTenureUnit(unit: TenureUnit) {
+        _input.value = _input.value.copy(tenureUnit = unit)
+    }
+
+    fun getPrincipal(): Double = _input.value.principal.toDoubleOrNull() ?: 0.0
+    fun getInterest(): Double = _input.value.interest.toDoubleOrNull() ?: 0.0
+    fun getTenure(): Int = _input.value.tenure.toIntOrNull() ?: 0
+    fun getTenureUnit(): TenureUnit = _input.value.tenureUnit
+
     private fun getStartDateLocalDate(): LocalDate {
         return Instant.ofEpochMilli(startDateTenure)
             .atZone(ZoneId.systemDefault())
             .toLocalDate()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun refreshTables() {
-        loadTable()
-        loadYearlyTable()
-    }
-
-    fun setPrincipalAmount(value: String) {
-        _input.value = _input.value.copy(principal = value)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) refreshTables()
-    }
-
-    fun setInterestRate(value: String) {
-        _input.value = _input.value.copy(interest = value)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) refreshTables()
-    }
-
-    fun setTenure(value: String) {
-        _input.value = _input.value.copy(tenure = value)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) refreshTables()
-    }
-
-    fun setTenureUnit(unit: TenureUnit) {
-        _input.value = _input.value.copy(tenureUnit = unit)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) refreshTables()
-    }
-
     fun calcEmi(): Double {
-        val r = inputState.interest.toDoubleOrNull()?.div(12)?.div(100) ?: 0.0
-        val p = inputState.principal.toDoubleOrNull() ?: 0.0
-        val t = inputState.tenure.toIntOrNull() ?: 0
-
-        val n = when (inputState.tenureUnit) {
-            TenureUnit.YEARS -> t * 12
-            TenureUnit.MONTHS -> t
+        val r = getInterest().div(12).div(100)
+        val p = getPrincipal()
+        val n = when (getTenureUnit()) {
+            TenureUnit.YEARS -> getTenure() * 12
+            TenureUnit.MONTHS -> getTenure()
         }
 
         if (r == 0.0 || n == 0 || p == 0.0) return 0.0
@@ -89,44 +76,37 @@ class InputViewModel : ViewModel() {
     }
 
     fun calcTotalInterest(emi: Double): Double {
-        val t = inputState.tenure.toIntOrNull() ?: 0
-        val n = when (inputState.tenureUnit) {
-            TenureUnit.YEARS -> t * 12
-            TenureUnit.MONTHS -> t
+        val n = when (getTenureUnit()) {
+            TenureUnit.YEARS -> getTenure() * 12
+            TenureUnit.MONTHS -> getTenure()
         }
-        val totalPaid = emi * n
-        val principal = inputState.principal.toDoubleOrNull() ?: 0.0
-        return totalPaid - principal
+        return emi * n - getPrincipal()
     }
 
     fun calcTotalAmountPayable(emi: Double): Double {
-        val t = inputState.tenure.toIntOrNull() ?: 0
-        val n = when (inputState.tenureUnit) {
-            TenureUnit.YEARS -> t * 12
-            TenureUnit.MONTHS -> t
+        val n = when (getTenureUnit()) {
+            TenureUnit.YEARS -> getTenure() * 12
+            TenureUnit.MONTHS -> getTenure()
         }
         return emi * n
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun loadTable(): MutableList<EmiBreakdown> {
         _table.clear()
-        val principal = inputState.principal.toDoubleOrNull() ?: return _table
-        val interest = inputState.interest.toDoubleOrNull() ?: return _table
-        val tenure = inputState.tenure.toIntOrNull() ?: return _table
-        return calcAmortisationTable(principal, interest, tenure, getStartDateLocalDate())
+        val p = getPrincipal()
+        val r = getInterest()
+        val t = getTenure()
+        return calcAmortisationTable(p, r, t, getStartDateLocalDate())
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun loadYearlyTable(): MutableList<EmiBreakdown> {
         _yearlyTable.clear()
-        val principal = inputState.principal.toDoubleOrNull() ?: return _yearlyTable
-        val interest = inputState.interest.toDoubleOrNull() ?: return _yearlyTable
-        val tenure = inputState.tenure.toIntOrNull() ?: return _yearlyTable
-        return calcAmortisationTableYearly(principal, interest, tenure, getStartDateLocalDate())
+        val p = getPrincipal()
+        val r = getInterest()
+        val t = getTenure()
+        return calcAmortisationTableYearly(p, r, t, getStartDateLocalDate())
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun calcAmortisationTable(
         loanAmount: Double,
         annualInterest: Double,
@@ -134,7 +114,7 @@ class InputViewModel : ViewModel() {
         startDate: LocalDate
     ): MutableList<EmiBreakdown> {
         val monthlyInterest = annualInterest / 12 / 100
-        val months = when (inputState.tenureUnit) {
+        val months = when (getTenureUnit()) {
             TenureUnit.YEARS -> tenure * 12
             TenureUnit.MONTHS -> tenure
         }
@@ -168,7 +148,6 @@ class InputViewModel : ViewModel() {
         return _table
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun calcAmortisationTableYearly(
         loanAmount: Double,
         annualInterest: Double,
@@ -176,7 +155,7 @@ class InputViewModel : ViewModel() {
         startDate: LocalDate
     ): MutableList<EmiBreakdown> {
         val monthlyInterest = annualInterest / 12 / 100
-        val months = when (inputState.tenureUnit) {
+        val months = when (getTenureUnit()) {
             TenureUnit.YEARS -> tenure * 12
             TenureUnit.MONTHS -> tenure
         }
@@ -193,7 +172,6 @@ class InputViewModel : ViewModel() {
         for (month in 0 until months) {
             val interestComponent = balance * monthlyInterest
             val principalComponent = emi - interestComponent
-
             val currentDate = startDate.plusMonths(month.toLong())
 
             if (currentDate.year != currentYear) {
@@ -233,12 +211,10 @@ class InputViewModel : ViewModel() {
         return _yearlyTable
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun monthlyBreakdownGroupedByYear(): Map<String, List<EmiBreakdown>> {
         if (_table.isEmpty()) {
             loadTable()
         }
         return _table.groupBy { it.month.takeLast(4) }
     }
-
 }

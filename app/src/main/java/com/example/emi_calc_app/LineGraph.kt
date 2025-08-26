@@ -24,7 +24,6 @@ import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 
-@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LineChartCompose(
