@@ -1,0 +1,139 @@
+object CalculatorRepository {
+
+    // 🔹 EMI Calculation
+    fun calcEMI(principal: Double, annualRate: Double, months: Int): Double {
+        val r = annualRate / 12 / 100
+        return if (r == 0.0) {
+            principal / months
+        } else {
+            (principal * r * Math.pow(1 + r, months.toDouble())) /
+                    (Math.pow(1 + r, months.toDouble()) - 1)
+        }
+    }
+
+    fun calcEmiTotalInterest(emi: Double, principal: Double, months: Int): Double {
+        return emi * months - principal
+    }
+
+    // 🔹 FD Calculation (Monthly Compounding)
+    fun calcFDMaturity(principal: Double, annualRate: Double, years: Int): Double {
+        val r = annualRate / 100
+        val n = 12 // monthly compounding
+        return principal * Math.pow(1 + r / n, n * years.toDouble())
+    }
+
+    fun calcFDInterest(principal: Double, maturity: Double): Double {
+        return maturity - principal
+    }
+}
+
+
+
+data class FDEntry(
+    val month: Int,
+    val openingBalance: Double,
+    val interestEarned: Double,
+    val closingBalance: Double
+)
+
+data class FDResult(
+    val maturityAmount: Double,
+    val totalInterest: Double,
+    val table: List<FDEntry>
+)
+
+
+
+import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+
+class FDViewModel : ViewModel() {
+
+    private val _fdResult = MutableStateFlow<FDResult?>(null)
+    val fdResult: StateFlow<FDResult?> = _fdResult
+
+    fun calculateFD(principal: Double, annualRate: Double, years: Int) {
+        val maturity = CalculatorRepository.calcFDMaturity(principal, annualRate, years)
+        val totalInterest = CalculatorRepository.calcFDInterest(principal, maturity)
+        val table = buildFdTable(principal, annualRate, years)
+
+        _fdResult.value = FDResult(
+            maturityAmount = maturity,
+            totalInterest = totalInterest,
+            table = table
+        )
+    }
+
+    // 🔹 Builds month-by-month FD table
+    private fun buildFdTable(principal: Double, annualRate: Double, years: Int): List<FDEntry> {
+        val r = annualRate / 100
+        val months = years * 12
+        val table = mutableListOf<FDEntry>()
+
+        for (m in 1..months) {
+            val opening = principal * Math.pow(1 + r / 12, (m - 1).toDouble())
+            val closing = principal * Math.pow(1 + r / 12, m.toDouble())
+            val interest = closing - opening
+
+            table.add(
+                FDEntry(
+                    month = m,
+                    openingBalance = opening,
+                    interestEarned = interest,
+                    closingBalance = closing
+                )
+            )
+        }
+        return table
+    }
+}
+
+
+
+
+import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+
+class FDViewModel : ViewModel() {
+
+    private val _fdResult = MutableStateFlow<FDResult?>(null)
+    val fdResult: StateFlow<FDResult?> = _fdResult
+
+    fun calculateFD(principal: Double, annualRate: Double, years: Int) {
+        val maturity = CalculatorRepository.calcFDMaturity(principal, annualRate, years)
+        val totalInterest = CalculatorRepository.calcFDInterest(principal, maturity)
+        val table = buildFdTable(principal, annualRate, years)
+
+        _fdResult.value = FDResult(
+            maturityAmount = maturity,
+            totalInterest = totalInterest,
+            table = table
+        )
+    }
+
+    // 🔹 Builds month-by-month FD table
+    private fun buildFdTable(principal: Double, annualRate: Double, years: Int): List<FDEntry> {
+        val r = annualRate / 100
+        val months = years * 12
+        val table = mutableListOf<FDEntry>()
+
+        for (m in 1..months) {
+            val opening = principal * Math.pow(1 + r / 12, (m - 1).toDouble())
+            val closing = principal * Math.pow(1 + r / 12, m.toDouble())
+            val interest = closing - opening
+
+            table.add(
+                FDEntry(
+                    month = m,
+                    openingBalance = opening,
+                    interestEarned = interest,
+                    closingBalance = closing
+                )
+            )
+        }
+        return table
+    }
+}
+
