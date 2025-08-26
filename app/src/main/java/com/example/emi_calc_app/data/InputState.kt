@@ -3,10 +3,14 @@ enum class TenureUnit {
     MONTHS, YEARS
 }
 data class InputState(
-    val principal : String = "",
-    val interest : String = "",
-    val tenure : String = "",
-    val tenureUnit: TenureUnit = TenureUnit.MONTHS
-)
+    val principal : String = "100000",
+    val interest : String = "7.5",
+    val tenure : String = "5",
+    val tenureUnit: TenureUnit = TenureUnit.YEARS
+){
+    fun isValid(): Boolean {
+        return principal.isNotEmpty() && interest.isNotEmpty() && tenure.isNotEmpty()
+    }
+}
 
 

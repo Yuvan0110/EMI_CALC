@@ -1,44 +1,19 @@
 package com.example.emi_calc_app
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CurrencyRupee
 import androidx.compose.material.icons.filled.Percent
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.text.isDigitsOnly
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.emi_calc_app.data.TenureUnit
@@ -51,21 +26,9 @@ fun LoanInput(
     viewModel: InputViewModel = viewModel(),
     navController: NavController
 ) {
-    val input = viewModel.inputState
+    val input by remember { derivedStateOf { viewModel.inputState } }
     var isExpanded by remember { mutableStateOf(false) }
     val tenureUnits = listOf("Years", "Months")
-
-
-    LaunchedEffect(Unit) {
-        if (input.principal.isEmpty()) viewModel.setPrincipalAmount("1000000")
-        if (input.interest.isEmpty()) viewModel.setInterestRate("7.5")
-        if (input.tenure.isEmpty()) viewModel.setTenure("5")
-    }
-
-    val selectedUnit = when (input.tenureUnit) {
-        TenureUnit.YEARS -> "Years"
-        TenureUnit.MONTHS -> "Months"
-    }
 
     Scaffold(
         topBar = {
@@ -88,11 +51,7 @@ fun LoanInput(
         ) {
             OutlinedTextField(
                 value = input.principal,
-                onValueChange = {
-                    if (it.isDigitsOnly() && it.length <= 10) {
-                        viewModel.setPrincipalAmount(it)
-                    }
-                },
+                onValueChange = viewModel::onPrincipalChange,
                 label = { Text("Principal") },
                 placeholder = { Text("Enter loan amount") },
                 trailingIcon = {
@@ -103,14 +62,7 @@ fun LoanInput(
 
             OutlinedTextField(
                 value = input.interest,
-                onValueChange = {
-                    val num = it.toDoubleOrNull() ?: 0.0
-                    if (num in 0.0..100.0) {
-                        if (it.matches(Regex("(^\\d+)?(\\.\\d*)?$"))) {
-                            viewModel.setInterestRate(it)
-                        }
-                    }
-                },
+                onValueChange = viewModel::onInterestChange,
                 label = { Text("Interest rate") },
                 placeholder = { Text("Enter interest rate") },
                 trailingIcon = {
@@ -125,11 +77,7 @@ fun LoanInput(
             ) {
                 OutlinedTextField(
                     value = input.tenure,
-                    onValueChange = {
-                        if (it.isDigitsOnly() && it.length <= 4) {
-                            viewModel.setTenure(it)
-                        }
-                    },
+                    onValueChange = viewModel::onTenureChange,
                     label = { Text("Tenure") },
                     placeholder = { Text("Enter loan tenure") },
                     modifier = Modifier.weight(1f)
@@ -144,7 +92,10 @@ fun LoanInput(
                 ) {
                     OutlinedTextField(
                         readOnly = true,
-                        value = selectedUnit,
+                        value = when (input.tenureUnit) {
+                            TenureUnit.YEARS -> "Years"
+                            TenureUnit.MONTHS -> "Months"
+                        },
                         onValueChange = {},
                         label = { Text("Tenure Unit") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isExpanded) },
@@ -177,18 +128,14 @@ fun LoanInput(
             ) {
                 Button(
                     onClick = { navController.navigate("table") },
-                    enabled = input.principal.isNotEmpty() &&
-                            input.interest.isNotEmpty() &&
-                            input.tenure.isNotEmpty()
+                    enabled = input.isValid()
                 ) {
                     Text("Detailed statistics")
                 }
 
                 Button(
                     onClick = { navController.navigate("graph") },
-                    enabled = input.principal.isNotEmpty() &&
-                            input.interest.isNotEmpty() &&
-                            input.tenure.isNotEmpty()
+                    enabled = input.isValid()
                 ) {
                     Text("Show Chart")
                 }
