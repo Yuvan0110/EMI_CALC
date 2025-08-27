@@ -14,7 +14,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.emi_calc_app.view_model.InputViewModel
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun EmiApp() {
     val navController = rememberNavController()
@@ -26,7 +25,7 @@ fun EmiApp() {
     ) {
         composable("input") {
             LoanInput(
-                viewModel = viewModel,
+                viewModelRepository = viewModel.viewModelRepository,
                 navController = navController
             )
         }

@@ -7,10 +7,6 @@ data class InputState(
     val interest : String = "7.5",
     val tenure : String = "5",
     val tenureUnit: TenureUnit = TenureUnit.YEARS
-){
-    fun isValid(): Boolean {
-        return principal.isNotEmpty() && interest.isNotEmpty() && tenure.isNotEmpty()
-    }
-}
+)
 
 

@@ -8,3 +8,11 @@ data class EmiBreakdown(
     val balance: Double,
     val loanPercentPaid: Double
 )
+
+data class FdBreakdown(
+    val month: String,
+    val principalComponent: Double,
+    val interestComponent: Double,
+    val totalAmount: Double,
+    val growthPercent: Double
+)

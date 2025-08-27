@@ -1,7 +1,6 @@
 package com.example.emi_calc_app
 
 import android.annotation.SuppressLint
-import android.graphics.Color
 import android.os.Environment
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -51,14 +50,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
-import com.example.emi_calc_app.data.EmiBreakdown
 import com.example.emi_calc_app.view_model.InputViewModel
-import com.github.mikephil.charting.charts.LineChart
-import com.github.mikephil.charting.data.Entry
-import com.github.mikephil.charting.data.LineData
-import com.github.mikephil.charting.data.LineDataSet
 import com.itextpdf.text.Document
 import com.itextpdf.text.Element
 import com.itextpdf.text.Paragraph
@@ -321,7 +314,7 @@ fun TableCell(text: String, width: Dp, height: Dp = 40.dp) {
 @Composable
 fun StartDateField(viewModel: InputViewModel, modifier: Modifier) {
     var showDatePicker by remember { mutableStateOf(false) }
-    val selectedDate = remember { mutableStateOf(viewModel.startDateTenure) }
+    val selectedDate = remember { mutableStateOf(viewModel.viewModelRepository.startDateTenure) }
     val datePickerState = rememberDatePickerState(selectedDate.value)
     OutlinedTextField(
         value = convertMillisToDate(selectedDate.value),
@@ -345,7 +338,7 @@ fun StartDateField(viewModel: InputViewModel, modifier: Modifier) {
                     onClick = {
                         datePickerState.selectedDateMillis?.let {
                             selectedDate.value = it
-                            viewModel.setStartDate(it)
+                            viewModel.viewModelRepository.setStartDate(it)
                         }
                         showDatePicker = false
                     }

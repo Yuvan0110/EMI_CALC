@@ -22,7 +22,7 @@ import com.github.mikephil.charting.formatter.PercentFormatter
 fun PieChartSummary(viewModel: InputViewModel = viewModel()) {
     val emi = viewModel.calcEmi()
     val interest = viewModel.calcTotalInterest(emi)
-    val principal = viewModel.inputState.principal.toDoubleOrNull() ?: 0.0
+    val principal = viewModel.viewModelRepository.inputState.principal.toDouble()
 
 
     val entries = listOf(

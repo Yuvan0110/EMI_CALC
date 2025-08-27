@@ -1,25 +1,15 @@
 package com.example.emi_calc_app.view_model
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.core.text.isDigitsOnly
 import androidx.lifecycle.ViewModel
 import com.example.emi_calc_app.data.EmiBreakdown
-import com.example.emi_calc_app.data.InputState
 import com.example.emi_calc_app.data.TenureUnit
-import java.time.Instant
+import com.example.emi_calc_app.viewModelRepository.ViewModelRepository
 import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.pow
 
 class InputViewModel : ViewModel() {
-
-    private val _input = mutableStateOf(InputState())
-    val inputState: InputState get() = _input.value
 
     private val _table = mutableStateListOf<EmiBreakdown>()
     val table: List<EmiBreakdown> get() = _table
@@ -27,73 +17,33 @@ class InputViewModel : ViewModel() {
     private val _yearlyTable = mutableStateListOf<EmiBreakdown>()
     val yearlyTable: List<EmiBreakdown> get() = _yearlyTable
 
-    var startDateTenure by mutableLongStateOf(System.currentTimeMillis())
-
-    fun setStartDate(stDate: Long) {
-        startDateTenure = stDate
-    }
-
-    fun onPrincipalChange(value: String) {
-        if (value.isDigitsOnly() && value.length <= 10) {
-            _input.value = _input.value.copy(principal = value)
-        }
-    }
-
-    fun onInterestChange(value: String) {
-        val num = value.toDoubleOrNull() ?: 0.0
-        if (num in 0.0..100.0 && value.matches(Regex("(^\\d+)?(\\.\\d*)?$"))) {
-            _input.value = _input.value.copy(interest = value)
-        }
-    }
-
-    fun onTenureChange(value: String) {
-        if (value.isDigitsOnly() && value.length <= 4) {
-            _input.value = _input.value.copy(tenure = value)
-        }
-    }
-
-    fun setTenureUnit(unit: TenureUnit) {
-        _input.value = _input.value.copy(tenureUnit = unit)
-    }
-
-    private fun getPrincipal() = _input.value.principal.toDoubleOrNull() ?: 0.0
-    private fun getInterest() = _input.value.interest.toDoubleOrNull() ?: 0.0
-    private fun getTenure() = _input.value.tenure.toIntOrNull() ?: 0
-    private fun getTenureUnit() = _input.value.tenureUnit
-
-    private fun getStartDateLocalDate(): LocalDate =
-        Instant.ofEpochMilli(startDateTenure).atZone(ZoneId.systemDefault()).toLocalDate()
-
+    val viewModelRepository = ViewModelRepository()
     fun calcEmi(): Double {
-        val r = getInterest() / 12 / 100
-        val p = getPrincipal()
-        val n = when (getTenureUnit()) {
-            TenureUnit.YEARS -> getTenure() * 12
-            TenureUnit.MONTHS -> getTenure()
+        val r = viewModelRepository.getInterest() / 12 / 100
+        val p = viewModelRepository.getPrincipal()
+        val n = when (viewModelRepository.getTenureUnit()) {
+            TenureUnit.YEARS -> viewModelRepository.getTenure() * 12
+            TenureUnit.MONTHS -> viewModelRepository.getTenure()
         }
         if (r == 0.0 || n == 0 || p == 0.0) return 0.0
         val num = (1 + r).pow(n)
         return (p * r * num) / (num - 1)
     }
 
-    fun calcTotalInterest(emi: Double): Double = emi * getMonths() - getPrincipal()
+    fun calcTotalInterest(emi: Double): Double = emi * viewModelRepository.getMonths() - viewModelRepository.getPrincipal()
 
-    fun calcTotalAmountPayable(emi: Double): Double = emi * getMonths()
+    fun calcTotalAmountPayable(emi: Double): Double = emi * viewModelRepository.getMonths()
 
-    private fun getMonths(): Int =
-        when (getTenureUnit()) {
-            TenureUnit.YEARS -> getTenure() * 12
-            TenureUnit.MONTHS -> getTenure()
-        }
+
 
     fun loadTable(): MutableList<EmiBreakdown> {
         _table.clear()
-        return calcAmortisationTable(getPrincipal(), getInterest(), getMonths(), getStartDateLocalDate())
+        return calcAmortisationTable(viewModelRepository.getPrincipal(), viewModelRepository.getInterest(), viewModelRepository.getMonths(), viewModelRepository.getStartDate())
     }
 
     fun loadYearlyTable(): MutableList<EmiBreakdown> {
         _yearlyTable.clear()
-        return calcAmortisationTableYearly(getPrincipal(), getInterest(), getMonths(), getStartDateLocalDate())
+        return calcAmortisationTableYearly(viewModelRepository.getPrincipal(), viewModelRepository.getInterest(), viewModelRepository.getMonths(), viewModelRepository.getStartDate())
     }
 
     private fun calcAmortisationTable(
