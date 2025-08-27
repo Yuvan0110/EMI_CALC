@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">emi_calc_app</string>
+
+
+    <string name="app_type">EMI Calculator</string>
+    <string name="summary_emi">EMI Summary</string>
+    <string name="emi">Monthly EMI</string>
+    <string name="totalInterest">Total interest</string>
+    <string name="totalAmount">Total Amount\nInterest + Principal</string>
+
+    <string name="summary_fd">FD Summary</string>
+    <string name="initial_amt">Initial investment</string>
+    <string name="interest_amt">Interest amount</string>
+    <string name="totalReturns">Total returns\nInterest + Principal</string>
+</resources>
