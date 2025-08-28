@@ -13,9 +13,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.emi_calc_app.view_model.InputViewModel
+import com.example.emi_calc_app.composables.AppBar
+import com.example.emi_calc_app.data.Breakdown
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.Entry
@@ -26,14 +26,13 @@ import com.github.mikephil.charting.data.LineDataSet
 @Composable
 fun LineChartCompose(
     modifier: Modifier = Modifier,
+    yearlyData :List<Breakdown>,
     navController: NavController,
-    viewModel: InputViewModel = viewModel(),
 ) {
-    val yearlyData = viewModel.loadYearlyTable()
+//    val yearlyData = viewModel.loadYearlyTable()
 
     val year = yearlyData.map { it.month.takeLast(4).toFloat() }
 
-    // Data sets
     val balance = yearlyData.map { it.balance.toFloat() }
     val entriesYearBalance = year.zip(balance) { y, b -> Entry(y, b) }
 
@@ -45,7 +44,7 @@ fun LineChartCompose(
 
     Scaffold(
         topBar = {
-            AppBar("Chart Summary", onBack = { navController.navigateUp() } )
+            AppBar("Chart Summary", onBack = { navController.navigateUp() })
         }
     ) { padding ->
         Box(modifier = Modifier
@@ -110,10 +109,3 @@ fun LineChartCompose(
         }
     }
 }
-
-
-
-
-
-
-

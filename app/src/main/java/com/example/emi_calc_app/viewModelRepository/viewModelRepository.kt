@@ -1,7 +1,6 @@
 package com.example.emi_calc_app.viewModelRepository
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.text.isDigitsOnly
@@ -15,7 +14,7 @@ class ViewModelRepository {
     private val _input = mutableStateOf(InputState())
     val inputState: InputState get() = _input.value
 
-    var startDateTenure by mutableLongStateOf(System.currentTimeMillis())
+    var startDateTenure by mutableStateOf(System.currentTimeMillis())
 
     fun setStartDate(stDate: Long) {
         startDateTenure = stDate
@@ -23,20 +22,20 @@ class ViewModelRepository {
 
     fun onPrincipalChange(value: String) {
         if (value.isDigitsOnly() && value.length <= 10) {
-            _input.value = _input.value.copy(principal = value)
+            setPrincipal(value)
         }
     }
 
     fun onInterestChange(value: String) {
         val num = value.toDoubleOrNull() ?: 0.0
         if (num in 0.0..100.0 && value.matches(Regex("(^\\d+)?(\\.\\d*)?$"))) {
-            _input.value = _input.value.copy(interest = value)
+            setInterest(value)
         }
     }
 
     fun onTenureChange(value: String) {
         if (value.isDigitsOnly() && value.length <= 4) {
-            _input.value = _input.value.copy(tenure = value)
+            setTenure(value)
         }
     }
 
@@ -63,7 +62,7 @@ class ViewModelRepository {
         return _input.value.interest.toDoubleOrNull() ?: 0.0
     }
     fun getTenure() : Int {
-       return _input.value.tenure.toIntOrNull() ?: 0
+        return _input.value.tenure.toIntOrNull() ?: 0
     }
     fun getTenureUnit() : TenureUnit {
         return _input.value.tenureUnit
@@ -83,4 +82,5 @@ class ViewModelRepository {
     fun isValid(): Boolean {
         return inputState.principal.isNotEmpty() && inputState.interest.isNotEmpty() && inputState.tenure.isNotEmpty()
     }
+
 }

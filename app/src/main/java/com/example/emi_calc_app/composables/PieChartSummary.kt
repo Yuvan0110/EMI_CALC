@@ -1,15 +1,13 @@
-package com.example.emi_calc_app
+package com.example.emi_calc_app.composables
 
 import android.graphics.Color
+import android.util.Log
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.emi_calc_app.view_model.InputViewModel
 import com.github.mikephil.charting.charts.PieChart
 import com.github.mikephil.charting.components.Legend
 import com.github.mikephil.charting.data.PieData
@@ -19,16 +17,18 @@ import com.github.mikephil.charting.formatter.PercentFormatter
 
 
 @Composable
-fun PieChartSummary(viewModel: InputViewModel = viewModel()) {
-    val emi = viewModel.calcEmi()
-    val interest = viewModel.calcTotalInterest(emi)
-    val principal = viewModel.viewModelRepository.inputState.principal.toDouble()
+fun PieChartSummary(
+    interest : Double,
+    principal : Double
+) {
 
+    Log.d("Calc", "$interest $principal")
 
     val entries = listOf(
         PieEntry(interest.toFloat(), "Interest"),
         PieEntry(principal.toFloat(), "Principal")
     )
+
 
     AndroidView(
         modifier = Modifier
@@ -74,4 +74,5 @@ fun PieChartSummary(viewModel: InputViewModel = viewModel()) {
 
         }
     )
+
 }
